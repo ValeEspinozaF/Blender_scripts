@@ -40,9 +40,9 @@ bpy.ops.object.shade_smooth()
 
 # Load contour coordinates
 inputs_dir = r"C:\Users\nbt571\Documents\Blender\Scripts\test_inputs"
-cntr_na_path = os.path.join(inputs_dir, "BDR_NA.txt")
+cntr_sa_path = os.path.join(inputs_dir, "BDR_SA.txt")
 cntr_68_path = os.path.join(inputs_dir, "CNTR68_STGs_0_2_SA.txt")
-cntr_df = pd.read_csv(cntr_na_path, delimiter=' ', header=None, names=['lon', 'lat'])
+cntr_df = pd.read_csv(cntr_sa_path, delimiter=' ', header=None, names=['lon', 'lat'])
 
 # Wrap contour to sphere
 verts, edges, faces = wrappedContour(cntr_df, bpy.data.objects['sphere_outer'], radius*1.03)

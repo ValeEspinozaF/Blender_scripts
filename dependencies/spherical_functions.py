@@ -150,3 +150,129 @@ def cart2sph(x=[], y=[], z=[],
         om.extend( [sqrt(Ax**2 + Ay**2 + Az**2) for Ax, Ay, Az in zip(x,y,z)] )
         
     return lon, lat, om
+
+
+def pole2matrix(lon, lat, om=0):
+    """ Transforms rotation vector in spherical coordinates to rotation matrix
+    
+    Parameters
+    ----------
+    lon : float
+        Longitude in degrees
+    lat : float
+        Latitude in degrees
+    om : float
+        Angle (magnitude) in degrees    
+    
+    Returns
+    ----------
+    rotMatrix : array[3x3]
+        Rotation matrix
+    
+    """
+    
+    lon = radians(lon)
+    lat = radians(lat)
+    om = radians(om)
+    
+    ex = cos(lon) * cos(lat)
+    ey = cos(lat) * sin(lon)
+    ez = sin(lat)
+    
+    r11 = (ex**2) * (1. - cos(om)) + cos(om)
+    r12 = ex * ey * (1. - cos(om)) - ez * sin(om)
+    r13 = ex * ez * (1. - cos(om)) + ey * sin(om)
+     
+    r21 = ey * ex * (1. - cos(om)) + ez * sin(om)
+    r22 = (ey**2) * (1. - cos(om)) + cos(om)
+    r23 = ey * ez * (1. - cos(om)) - ex * sin(om)
+    
+    r31 = ez * ex * (1. - cos(om)) - ey * sin(om)
+    r32 = ez * ey * (1. - cos(om)) + ex * sin(om)
+    r33 = (ez**2.) * (1. - cos(om)) + cos(om)
+    
+    rotMatrix = np.array([[r11,r12,r13],[r21,r22,r23],[r31,r32,r33]])
+    
+    return rotMatrix
+
+
+def matrix2pole(rot_matrix, degreesFormat=True):
+    
+    """ Transforms rotation matrix to rotation vector in spherical coordinates
+    
+    Parameters
+    ----------
+    rotMatrix : array[3x3]
+        Rotation matrix
+    degreesFormat : boolean, optional
+        Allows for output in degrees (True) or radians (False)
+    
+    Returns
+    ----------
+    lon : float
+        Longitude in degrees
+    lat : float
+        Latitude in degrees
+    om : float
+        Angle (magnitude) in degrees    
+    
+    """
+    
+    r = rot_matrix
+    
+    r11 = r[0][0]
+    r12 = r[0][1]
+    r13 = r[0][2]
+    
+    r21 = r[1][0]
+    r22 = r[1][1]
+    r23 = r[1][2]
+    
+    r31 = r[2][0]
+    r32 = r[2][1]
+    r33 = r[2][2]
+    
+    tmp = sqrt((r32-r23)**2. + (r13-r31)**2. + (r21-r12)**2.)
+    if tmp == 0:
+        lat = 0.0
+    else: 
+        lat = asin((r21-r12)/tmp)
+        
+    lon = atan2((r13-r31), (r32-r23))
+    om = atan2(sqrt((r32-r23)**2. + (r13-r31)**2. + (r21-r12)**2.),
+                  (r11 + r22 + r33 - 1.))
+    
+    if degreesFormat:
+        lon = np.degrees(lon)
+        lat = np.degrees(lat)
+        om = np.degrees(om)
+
+        if om < 0:
+            om = 180. + om
+    
+    return lon, lat, om
+
+
+def rotation_matrix(z_angle, y_angle, x_angle = 0):
+    
+    #Turn vector to matrices
+    rot_vector_z = pole2matrix(0, 90, z_angle)
+    rot_vector_y = pole2matrix(90, 0, y_angle)
+    rot_vector_x = pole2matrix(0, 0, x_angle)
+
+    # Multiply rotation matrices
+    return np.dot(rot_vector_x, np.dot(rot_vector_y, rot_vector_z))
+
+
+def rotation_quaternion(rot_matrix):
+    
+    lon, lat, angle = matrix2pole(rot_matrix, degreesFormat=True)
+    ax, ay, az = sph2cart(lon, lat, 1.0)
+    
+    qx = ax * sin(np.radians(angle)/2)
+    qy = ay * sin(np.radians(angle)/2)
+    qz = az * sin(np.radians(angle)/2)
+    qw = cos(np.radians(angle)/2)
+    
+    return qx, qy, qz, qw
+
